@@ -1,0 +1,157 @@
+#!/bin/bash
+# This script uses speedtest-cli at this repo: https://github.com/sivel/speedtest-cli
+
+setParams()
+{
+  apiServerHost=${1-127.0.0.1}
+  manualUpdate=$2
+
+  local params=`parseYaml ../config/gateway.yml`
+  echo "⚡✧⚡ Got gateway data from config/gateway.yml ⚡✧⚡"
+  echo "────────────────────────────────────────────────────────────────────────────────"
+  echo -e "$params"
+  echo "────────────────────────────────────────────────────────────────────────────────"
+  eval $params
+}
+
+changeGateway()
+{
+  local gateway=$1
+  local hashName=gateway_$gateway
+  local gatewayIP=${!hashName}
+
+  echo -e "\n\n⚡✧⚡ Switching to gateway $gateway ($gatewayIP) ⚡✧⚡"
+
+  if sudo networksetup -setmanual Ethernet $ip 255.255.255.0 $gatewayIP; then
+    echo -e "\n  ✓ Switched to gateway $gateway successfully"
+    return 0
+  else
+    echo -e "\n  ✗ Failed to switch to gateway $gateway"
+    return 1
+  fi
+}
+
+updateSpeed()
+{
+  local gateway=$1
+  local try=$2
+  local result
+  result=`./speedtest_cli.py --server 603 2>&1`
+
+  if [ $? -ne 0 ]; then
+    if [ $try -eq 5 ]; then
+      result="Retrieving speedtest.net configuration...
+Retrieving speedtest.net server list...
+Testing from Some ISP (0.0.0.0)...
+Hosted by Unwired (San Francisco, CA) [99999.99 km]: 999.999 ms
+Testing download speed........................................
+Download: 0 Mbit/s
+Testing upload speed..................................................
+Upload: 0 Mbit/s"
+      curl -vsS --get -d gateway_name="$gateway" --data-urlencode result="$result" -d mode="$manualUpdate" "$apiServerHost/gateways" 2>&1
+    else
+      echo -e "$result"
+    fi
+    return 1
+  else
+    echo -e "$result"
+    echo -e "\n  ➜ Sending speed test report to server at \"$apiServerHost\"\n"
+    local response=`curl -vsS --get -d gateway_name="$gateway" --data-urlencode result="$result" -d mode="$manualUpdate" "$apiServerHost/gateways" 2>&1`
+    if [[ "$response" =~ "Status: 200 OK" ]]; then
+      echo "    ✓ Report sent successfully"
+      return 0
+    else
+      echo "    ✗ Cannot send report, here is the cURL log:"
+      echo "────────────────────────────────────────────────────────────────────────────────"
+      echo $response
+      echo "────────────────────────────────────────────────────────────────────────────────"
+      return 1
+    fi
+  fi
+}
+
+sendAlert()
+{
+  echo -e "\n\n➜ Sending alert request to server at \"$apiServerHost\"\n"
+  local alertURL="$apiServerHost/gateways/send_alert"
+  local response=`curl -vsS "$alertURL" 2>&1`
+  if [[ "$response" =~ "Status: 200 OK" ]]; then
+    echo "  ✓ Sent request successfully"
+    return 0
+  else
+    echo "  ✗ Could not send report, here is the cURL log:"
+    echo "────────────────────────────────────────────────────────────────────────────────"
+    echo $response
+    echo "────────────────────────────────────────────────────────────────────────────────"
+    return 1
+  fi
+}
+
+parseYaml() {
+  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+       -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+  awk -F$fs '{
+    indent = length($1)/2;
+    vname[indent] = $2;
+    for (i in vname) {if (i > indent) {delete vname[i]}}
+    if (length($3) > 0) {
+      vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+      if ($2 == "gateways")
+        printf("%s=( %s )\n", $2, $3)
+      else
+        printf("%s%s=\"%s\"\n", vn, $2, $3)
+    }
+  }'
+}
+
+main()
+{
+  cd "$(dirname "$0")"
+
+  if setParams $1 $2; then
+    echo "  ✓ Loaded gateway config with success"
+  else
+    echo "  ✗ Cannot proceed -- something is wrong with your params or gateway config"
+    exit 1
+  fi
+
+  if [[ $manualUpdate ]]; then
+    # Sometimes mDNSResponder/descoveryd in Mac OS X stops working, making DNS resolver failed
+    # We would reset it when a manual speed test is triggered
+    # More: http://apple.stackexchange.com/a/48828
+    
+    # On Mac OS X 10.10, restart descoveryd
+    sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.discoveryd.plist
+    sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.discoveryd.plist
+    
+    # On Mac OS X 10.9 and below, restart mDNSResponder
+    # sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.mDNSResponder.plist
+    # sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.mDNSResponder.plist
+  fi
+
+  for gateway in "${gateways[@]}"; do
+    if changeGateway $gateway; then
+      for i in {1..7}; do
+        echo -e "\n  • Updating speed test for gateway $gateway, try #$i"
+        sleep $((3*i))
+        if updateSpeed $gateway $i; then
+          i=0; break
+        fi
+      done
+      if [ $i == 0 ]; then
+        echo -e "\n  ✓ Finished speed test for $gateway with success"
+      else
+        # send 0 Mbit/s report
+
+        echo -e "\n  ✗ Could not perform speed test for $gateway due to network error"
+      fi
+    fi
+  done
+
+  sendAlert
+
+  changeGateway $default_gateway
+}
+
+main $1 $2

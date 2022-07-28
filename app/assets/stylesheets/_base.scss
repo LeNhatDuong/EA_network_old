@@ -1,0 +1,57 @@
+/** variables **/
+$base-font: Roboto, Arial;
+
+$primary-1: #2196f3;
+$secondary-1: #b5e4f6;
+$primary-2: #ff9800;
+$secondary-2: #f7d7be;
+$primary-3: #f44336;
+$secondary-3: #f7bec3;
+$primary-4: #4caf50;
+$secondary-4: #c5f7be;
+
+$dark-aqua: #066265;
+$aqua: #0aa89e;
+$light-aqua: #7dd8d2;
+$dark-grey: #313534;
+$grey: #969c9c;
+$light-grey: #e5e6e6;
+$transparent-grey: rgba(0, 0, 0, 0.33);
+
+/** mixins **/
+@mixin make-column($large: 12, $medium: 12, $small: 12, $tiny: 12) {
+  @include make-xs-column($tiny);
+  @include make-sm-column($small);
+  @include make-md-column($medium);
+  @include make-lg-column($large);
+}
+
+%vertical-align {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+%truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/** base styles **/
+html, body {
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  font-weight: 400;
+}
+
+body {
+  font-family: $base-font;
+  color: $dark-grey;
+}
+
+h1, h2, h3, h4, h5, h6, ul {
+  margin: 0;
+  padding: 0;
+}

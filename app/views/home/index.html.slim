@@ -1,0 +1,69 @@
+header
+  section
+    h1
+      span East Agile's
+      |  Network Performance
+    h2
+      span Source: Speed test to
+      a href="https://github.com/EastAgile/EastAgile_networking/tree/master#a-bit-of-technical-details"  San Francisco, CA
+  section
+    ul
+      li#date-trigger title="Date Range"
+        span#date-input
+        a.btn.circle href="javascript:void(0)"
+          i.glyphicon.glyphicon-calendar
+      li.dropdown title="Chart Types"
+        a.btn.circle href="javascript:void(0)" data-toggle="dropdown"
+          i.glyphicon.glyphicon-stats
+        ul.dropdown-menu.animation-expand
+          li.dropdown-header Chart Types
+          li
+            a#show-latest.alert.alert-callout.alert-info href="javascript:void(0)"
+              = image_tag('bar-chart.svg', class: 'pull-right')
+              h3 Bar Chart
+              h4 View a single latest result
+          li
+            a#submit-button.alert.alert-callout.alert-warning href="javascript:void(0)"
+              = image_tag('line-chart.svg', class: 'pull-right')
+              h3 Line Chart
+              h4 View past results by time range
+          li.dropdown-header Option
+          li
+            a#manual-update href="javascript:void(0)"
+              | Run speed test now…
+              span.pull-right
+                i.glyphicon.glyphicon-transfer
+      li title="Toggle Upload Data"
+        a#toggle-upload.btn.circle href="javascript:void(0)"
+          i.glyphicon.glyphicon-eye-close
+    ul
+      li.dropdown.profile title="Choose Gateway"
+        a.dropdown-toggle href="javascript:void(0)" data-toggle="dropdown"
+          .circle.dropdown-avatar ALL
+          #selected-gateway
+            h3 ALL
+            h4 All gateways
+            span.hidden
+          i.glyphicon
+        ul.dropdown-menu.animation-dock
+          li
+            a.gateway.alert.alert-callout.alert-neutral href="javascript:void(0)"
+              h3 ALL
+              h4 All gateways
+          li.dropdown-header Gateway
+          - @gateways.each do |gateway|
+            li
+              a.gateway.alert.alert-callout href="javascript:void(0)"
+                h3= gateway[:name]
+                h4= gateway[:ip]
+                span.hidden= gateway[:id]
+
+main
+  #loading
+    h1 Loading…
+    .slider
+    .line
+      .break.dot1
+      .break.dot2
+      .break.dot3
+  section#container

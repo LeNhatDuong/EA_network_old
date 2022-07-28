@@ -1,0 +1,12 @@
+doctype html
+html
+  head
+    meta name='viewport' content='width=device-width, initial-scale=1'
+    title Network Performances at East Agile
+    = stylesheet_link_tag 'application', media: 'all'
+    = stylesheet_link_tag '//fonts.googleapis.com/css?family=Roboto:300,400'
+    = javascript_include_tag 'application'
+    = csrf_meta_tags
+    = yield :head
+  body class="#{controller.controller_name}"
+    = yield

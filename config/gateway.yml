@@ -1,0 +1,23 @@
+# Notice: this file is to be read into `bash` by a simple `yaml` parser, so keep its syntax basic. Also, keep the indentation at 2 spaces.
+
+# Define the gateways that East Agile is using, together with their corresponding IPs
+gateway:
+  HOME: 172.30.240.1
+#  FPT1: 192.168.1.1
+#  VNPT1: 192.168.1.2
+#  VIETTEL1: 192.168.1.3
+#  VIETTEL2: 192.168.1.4
+  
+
+# The name of active gateways to do speed test, in the order that we want to display them in charts
+# Notice: seperate the names by a single space
+#gateways: FPT1 VNPT1 VIETTEL1 VIETTEL2 HOME
+gateways: HOME
+
+# This is the gateway that we will switch back to after the test, so that domain mapping for network.eastagile.vn works properly
+#default_gateway: VIETTEL1
+default_gateway: HOME
+
+# the static IP to assign to this machine when switching gateway
+#ip: 192.168.1.37
+ip: 172.30.253.199

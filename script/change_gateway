@@ -1,0 +1,50 @@
+#!/bin/bash
+setParams()
+{
+  local params=`parseYaml ../config/gateway.yml`
+  echo "⚡✧⚡ Got gateway data from config/gateway.yml ⚡✧⚡"
+  echo "────────────────────────────────────────────────────────────────────────────────"
+  echo -e "$params"
+  echo "────────────────────────────────────────────────────────────────────────────────"
+  eval $params
+  default_gateway=${1-$default_gateway}
+}
+
+changeGateway()
+{
+  gateway=$1  
+  local hashName=gateway_$gateway
+  local gatewayIP=${!hashName}
+
+  echo -e "\n\n⚡✧⚡ Switching to gateway $gateway ($gatewayIP) ⚡✧⚡"
+
+  if `sudo networksetup -setmanual Ethernet $ip 255.255.255.0 $gatewayIP`; then
+    echo -e "\n  ✓ Switched to gateway $gateway successfully"
+    exit 0
+  else
+    echo -e "\n  ✗ Failed to switch to gateway $gateway"
+    exit 1
+  fi
+}
+
+parseYaml() {
+  local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+  sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+       -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+  awk -F$fs '{
+    indent = length($1)/2;
+    vname[indent] = $2;
+    for (i in vname) {if (i > indent) {delete vname[i]}}
+    if (length($3) > 0) {
+      vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+      if ($2 == "gateways")
+        printf("%s=( %s )\n", $2, $3)
+      else
+        printf("%s%s=\"%s\"\n", vn, $2, $3)
+    }
+  }'
+}
+
+cd "$(dirname "$0")"
+setParams $1
+changeGateway $default_gateway
